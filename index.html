@@ -4,7 +4,7 @@
 		<meta charset="utf-8">
 		<title>JMH Charts</title>
 		<link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.2.0/semantic.min.css"/>
-		<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Signika:400,700"
+		<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Signika:400,700"/>
 	</head>
 	<body style="background-image: url(images/grey_wash_wall.png);">
 		<div class="ui padded centered grid" ng-controller="AppCtrl as ctrl">
@@ -30,7 +30,7 @@
 					<div class="ui list">
 						<div class="item" ng-repeat="file in ctrl.uploaded">
 							<i class="ui red remove icon" title="Remove" ng-click="ctrl.removeFile(file)"></i>
-							<div class="content">{{file.name}}</div>
+							<div class="content" ng-bind="file.name"></div>
 						</div>
 					</div>
 				</div>
@@ -42,9 +42,9 @@
 				<div class="twelve wide column">
 					<div class="ui segment">
 						<div id="{{chart.id}}" class="ui shape" ui-jq="shape" style="width: 100%;">
-							<div class="sides">
-								<div id="{{chart.id}}_scores" class="active side" style="background-image: url(images/sand.png);"></div>
-								<div id="{{chart.id}}_percentiles" class="side" style="background-image: url(images/sand.png);"></div>
+							<div class="sides" style="width: 100%;">
+								<div id="{{chart.id}}_scores" class="active side"></div>
+								<div id="{{chart.id}}_percentiles" class="side"></div>
 							</div>
 						</div>
 						<button class="ui blue button" ng-click="ctrl.flipChart(chart.id)">Flip</button>
