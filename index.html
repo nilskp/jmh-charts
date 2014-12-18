@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html ng-app="App">
+	<head>
+		<meta charset="utf-8">
+		<title>JMH Charts</title>
+		<link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.2.0/semantic.min.css"/>
+		<link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Signika:400,700"
+	</head>
+	<body style="background-image: url(images/grey_wash_wall.png);">
+		<div class="ui padded centered grid" ng-controller="AppCtrl as ctrl">
+			<div class="row">
+				<div class="ui inverted header">
+					<h1>JMH Charts</h1>
+				</div>
+			</div>
+			<div class="ten wide column">
+				<div class="ui form segment">
+					<div class="inline field">
+						<div class="ui toggle checkbox">
+							<input id="perClass" type="checkbox" ng-model="ctrl.perClass" ng-change="ctrl.resetCharts()"/>
+							<label for="perClass">Separate chart per class</label>
+						</div>
+					</div>
+					<div class="inline field">
+						<div class="ui input">
+							<label>Load JSON file(s)</label>
+							<input type="file" multiple accept=".json" onchange="angular.element(this).scope().ctrl.loadFiles(this)"/>
+						</div>
+					</div>
+					<div class="ui list">
+						<div class="item" ng-repeat="file in ctrl.uploaded">
+							<i class="ui red remove icon" title="Remove" ng-click="ctrl.removeFile(file)"></i>
+							<div class="content">{{file.name}}</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="ui divider"></div>
+
+			<div class="row" ng-repeat="chart in ctrl.charts()" ng-init="ctrl.render(chart, this)">
+				<div class="twelve wide column">
+					<div class="ui segment">
+						<div id="{{chart.id}}" class="ui shape" ui-jq="shape" style="width: 100%;">
+							<div class="sides">
+								<div id="{{chart.id}}_scores" class="active side" style="background-image: url(images/sand.png);"></div>
+								<div id="{{chart.id}}_percentiles" class="side" style="background-image: url(images/sand.png);"></div>
+							</div>
+						</div>
+						<button class="ui blue button" ng-click="ctrl.flipChart(chart.id)">Flip</button>
+					</div>
+				</div>
+			</div>
+
+		</div>
+		
+		<script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.2.0/semantic.min.js"></script>
+		<script src="//code.highcharts.com/highcharts.js"></script>
+		<script src="//code.highcharts.com/highcharts-more.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.7/angular.min.js"></script>
+		<script src="scripts/ui-utils.min.js"></script>
+
+		<script src="scripts/gen/classes.js"></script>
+		<script src="scripts/gen/main.js"></script>
+
+		<script>
+		  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+		  ga('create', 'UA-57744007-1', 'auto');
+		  ga('send', 'pageview');
+		</script>
+
+	</body>
+</html>
