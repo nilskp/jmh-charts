@@ -3,7 +3,7 @@
 
   angular.module('App', ['ui.jq']).controller('AppCtrl', function($scope, $timeout) {
     var charts;
-    this.perClass = false;
+    this.perClass = true;
     this.uploaded = {};
     charts = new jmhc.Charts(this.perClass);
     this.resetCharts = function() {
@@ -28,11 +28,12 @@
     this.render = function(chart, $scope) {
       $timeout((function(_this) {
         return function() {
-          var height, pc, sc;
+          var height, isSingleFile, pc, sc;
+          isSingleFile = Object.keys(_this.uploaded).length === 1;
           height = Math.round($(window).height() * .67);
-          sc = renderScore(chart, _this.perClass, height);
-          pc = renderPercentiles(chart, _this.perClass, height);
-          return $scope.$on('$destroy', function() {
+          sc = renderScore(chart, _this.perClass, isSingleFile, height);
+          pc = renderPercentiles(chart, _this.perClass, isSingleFile, sc.chartHeight, sc.chartWidth);
+          $scope.$on('$destroy', function() {
             sc.destroy();
             pc.destroy();
           });
@@ -89,7 +90,7 @@
     ss: "Single invocation time"
   };
 
-  renderScore = function(chart, perClass, height) {
+  renderScore = function(chart, perClass, isSingleFile, height) {
     var any, options;
     any = chart.benchmarks[0];
     options = {
@@ -103,6 +104,7 @@
         enabled: false
       },
       chart: {
+        reflow: false,
         zoomType: 'xy',
         renderTo: "" + chart.id + "_scores",
         height: height,
@@ -144,7 +146,7 @@
           bench = _ref[_i];
           series.push({
             type: 'column',
-            name: (perClass ? "" : "" + bench.namespace + ".") + ("" + bench.name + " (" + bench.filename + ")"),
+            name: (perClass ? "" : "" + bench.namespace + ".") + bench.name + (isSingleFile ? "" : " (" + bench.filename + ")"),
             data: [bench.primary.score]
           });
           series.push({
@@ -158,7 +160,7 @@
     return new Highcharts.Chart(options);
   };
 
-  renderPercentiles = function(chart, perClass, height) {
+  renderPercentiles = function(chart, perClass, isSingleFile, height, width) {
     var any, bench, options, p, _;
     any = chart.benchmarks[0];
     options = {
@@ -172,10 +174,12 @@
         enabled: false
       },
       chart: {
+        reflow: false,
         zoomType: 'xy',
         renderTo: "" + chart.id + "_percentiles",
         type: 'spline',
         height: height,
+        width: width,
         style: {
           fontFamily: "Signika, serif"
         }
@@ -214,7 +218,7 @@
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           bench = _ref[_i];
           _results.push({
-            name: (perClass ? "" : "" + bench.namespace + ".") + ("" + bench.name + " (" + bench.filename + ")"),
+            name: (perClass ? "" : "" + bench.namespace + ".") + bench.name + (isSingleFile ? "" : " (" + bench.filename + ")"),
             data: (function() {
               var _ref1, _results1;
               _ref1 = bench.primary.percentiles;

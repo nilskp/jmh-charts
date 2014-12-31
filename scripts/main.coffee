@@ -1,6 +1,6 @@
 angular.module('App', ['ui.jq']).controller 'AppCtrl', ($scope, $timeout) ->
 
-	@perClass = false
+	@perClass = true
 	@uploaded = {}
 	charts = new jmhc.Charts(@perClass)
 
@@ -16,10 +16,12 @@ angular.module('App', ['ui.jq']).controller 'AppCtrl', ($scope, $timeout) ->
 
 	@render = (chart, $scope) ->
 		$timeout =>
+			isSingleFile = Object.keys(@uploaded).length == 1
 			height = Math.round($(window).height() * .67)
-			sc = renderScore(chart, @perClass, height)
-			pc = renderPercentiles(chart, @perClass, height)
+			sc = renderScore(chart, @perClass, isSingleFile, height)
+			pc = renderPercentiles(chart, @perClass, isSingleFile, sc.chartHeight, sc.chartWidth)
 			$scope.$on '$destroy', -> sc.destroy(); pc.destroy(); return
+			return
 		, 0, false
 		return
 
@@ -62,13 +64,14 @@ modes =
 	sample: "Sampling time"
 	ss: "Single invocation time"
 
-renderScore = (chart, perClass, height) ->
+renderScore = (chart, perClass, isSingleFile, height) ->
 	any = chart.benchmarks[0]
 	options =
 		title: text: "#{modes[chart.mode]} scores (#{chart.unit})"
 		subtitle: text: if perClass then any.namespace else null
 		credits: enabled: false
 		chart:
+			reflow: false
 			zoomType: 'xy'
 			renderTo: "#{chart.id}_scores"
 			height: height
@@ -91,7 +94,7 @@ renderScore = (chart, perClass, height) ->
 			for bench in chart.benchmarks
 				series.push
 					type: 'column'
-					name: (if perClass then "" else "#{bench.namespace}.") + "#{bench.name} (#{bench.filename})"
+					name: (if perClass then "" else "#{bench.namespace}.") + bench.name + (if isSingleFile then "" else " (#{bench.filename})")
 					data: [bench.primary.score]
 				series.push 
 					type: 'errorbar'
@@ -99,17 +102,19 @@ renderScore = (chart, perClass, height) ->
 			series
 	new Highcharts.Chart options
 
-renderPercentiles = (chart, perClass, height) ->
+renderPercentiles = (chart, perClass, isSingleFile, height, width) ->
 	any = chart.benchmarks[0]
 	options =
 		title: text: "#{modes[chart.mode]} percentiles (#{chart.unit})"
 		subtitle: text: if perClass then any.namespace else null
 		credits: enabled: false
 		chart:
+			reflow: false
 			zoomType: 'xy'
 			renderTo: "#{chart.id}_percentiles"
 			type: 'spline'
 			height: height
+			width: width
 			style:
 				fontFamily: "Signika, serif"
 		xAxis:
@@ -123,6 +128,6 @@ renderPercentiles = (chart, perClass, height) ->
 				stickyTracking: false
 				marker: enabled: false
 		series: for bench in chart.benchmarks
-			name: (if perClass then "" else "#{bench.namespace}.") + "#{bench.name} (#{bench.filename})"
+			name: (if perClass then "" else "#{bench.namespace}.") + bench.name + (if isSingleFile then "" else " (#{bench.filename})")
 			data: for _, p of bench.primary.percentiles then p
 	new Highcharts.Chart options
