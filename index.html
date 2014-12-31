@@ -29,7 +29,7 @@
 					</div>
 					<div class="ui list">
 						<div class="item" ng-repeat="file in ctrl.uploaded">
-							<i class="ui red remove icon" title="Remove" ng-click="ctrl.removeFile(file)"></i>
+							<i class="ui red remove icon" title="Remove" ng-click="ctrl.removeFile(file)" style="cursor: pointer;"></i>
 							<div class="content" ng-bind="file.name"></div>
 						</div>
 					</div>
@@ -40,13 +40,19 @@
 
 			<div class="row" ng-repeat="chart in ctrl.charts()" ng-init="ctrl.render(chart, this)">
 				<div class="twelve wide column">
-					<div class="ui segment">
+					<div class="ui attached segment">
 						<div id="{{chart.id}}" class="ui shape" ui-jq="shape" style="width: 100%;">
-							<div class="sides" style="width: 100%;">
-								<div id="{{chart.id}}_scores" class="active side"></div>
-								<div id="{{chart.id}}_percentiles" class="side"></div>
+							<div class="sides">
+								<div class="active side">
+									<div id="{{chart.id}}_scores"></div>
+								</div>
+								<div class="side">
+									<div id="{{chart.id}}_percentiles"></div>
+								</div>
 							</div>
 						</div>
+					</div>
+					<div class="ui center aligned bottom attached segment">
 						<button class="ui blue button" ng-click="ctrl.flipChart(chart.id)">Flip</button>
 					</div>
 				</div>
