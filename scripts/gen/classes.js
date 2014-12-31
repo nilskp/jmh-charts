@@ -67,10 +67,23 @@
 
   jmhc.Benchmark = (function() {
     function Benchmark(jmh, filename, filetime) {
-      var cls, packages, _ref;
+      var cls, name, packages, parms, value, _ref;
       this.filetime = filetime;
       this.filename = filename.substring(0, filename.lastIndexOf('.'));
       _ref = jmh.benchmark.split(".").reverse(), this.name = _ref[0], cls = _ref[1], packages = 3 <= _ref.length ? __slice.call(_ref, 2) : [];
+      if (jmh.params != null) {
+        parms = (function() {
+          var _ref1, _results;
+          _ref1 = jmh.params;
+          _results = [];
+          for (name in _ref1) {
+            value = _ref1[name];
+            _results.push("" + name + "=" + value);
+          }
+          return _results;
+        })();
+        this.name = "" + this.name + "(" + (parms.join(", ")) + ")";
+      }
       this.namespace = packages.length ? packages.reverse().map(function(p) {
         return p.substring(0, 1);
       }).join(".") + ("." + cls) : cls;
@@ -78,7 +91,7 @@
       this.unit = jmh.primaryMetric.scoreUnit;
       this.primary = new Metric(this.name, this.namespace, jmh.primaryMetric);
       this.secondaries = (function() {
-        var jmhMetric, name, namespace, _ref1, _results;
+        var jmhMetric, namespace, _ref1, _results;
         namespace = "" + this.namespace + "." + this.name;
         _ref1 = jmh.secondaryMetrics;
         _results = [];

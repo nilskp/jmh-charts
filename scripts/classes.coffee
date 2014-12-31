@@ -27,7 +27,10 @@ class jmhc.Benchmark
 	constructor: (jmh, filename, @filetime) ->
 		@filename = filename.substring 0, filename.lastIndexOf '.'
 		[@name, cls, packages...] = jmh.benchmark.split(".").reverse()
-		@namespace = 
+		if jmh.params?
+			parms = ("#{name}=#{value}" for name, value of jmh.params)
+			@name = "#{@name}(#{parms.join(", ")})"
+		@namespace =
 			if packages.length
 				packages.reverse().map((p) -> p.substring(0, 1)).join(".") + ".#{cls}"
 			else cls
