@@ -1,5 +1,5 @@
 (function() {
-  var modes, renderPercentiles, renderScore;
+  var jmhModes, renderPercentiles, renderScore, sharedChartOptions;
 
   angular.module('App', ['ui.jq']).controller('AppCtrl', function($scope, $timeout) {
     var charts;
@@ -28,11 +28,10 @@
     this.render = function(chart, $scope) {
       $timeout((function(_this) {
         return function() {
-          var height, isSingleFile, pc, sc;
-          isSingleFile = Object.keys(_this.uploaded).length === 1;
+          var height, pc, sc;
           height = Math.round($(window).height() * .67);
-          sc = renderScore(chart, _this.perClass, isSingleFile, height);
-          pc = renderPercentiles(chart, _this.perClass, isSingleFile, sc.chartHeight, sc.chartWidth);
+          sc = renderScore(chart, _this.perClass, height);
+          pc = renderPercentiles(chart, _this.perClass, sc.chartHeight, sc.chartWidth);
           $scope.$on('$destroy', function() {
             sc.destroy();
             pc.destroy();
@@ -83,57 +82,84 @@
     };
   });
 
-  modes = {
+  jmhModes = {
     thrpt: "Throughput",
     avgt: "Average time",
     sample: "Sampling time",
     ss: "Single invocation time"
   };
 
-  renderScore = function(chart, perClass, isSingleFile, height) {
-    var any, options;
+  sharedChartOptions = function(custom) {
+    var opt;
+    if (custom == null) {
+      custom = {};
+    }
+    opt = $.extend(true, {
+      credits: {
+        enabled: false
+      },
+      exporting: {
+        enabled: true
+      },
+      chart: {
+        style: {
+          fontFamily: "Signika, serif"
+        }
+      },
+      plotOptions: {
+        series: {
+          groupPadding: 0,
+          stickyTracking: false,
+          marker: {
+            enabled: false
+          }
+        }
+      },
+      tooltip: {
+        formatter: function() {
+          var info, tooltip, _, _ref;
+          tooltip = "<b>" + this.series.name + "</b>";
+          tooltip += "<br/>Score: " + this.point.y + " " + this.point.unit;
+          tooltip += "<br/>File: " + this.point.filename;
+          _ref = this.point.info;
+          for (_ in _ref) {
+            info = _ref[_];
+            tooltip += "<br/>" + info.text + ": " + info.value;
+          }
+          return tooltip;
+        }
+      }
+    }, custom);
+    return opt;
+  };
+
+  renderScore = function(chart, perClass, height) {
+    var any, bench, options, secondary;
     any = chart.benchmarks[0];
-    options = {
+    options = sharedChartOptions({
       title: {
-        text: "" + modes[chart.mode] + " scores (" + chart.unit + ")"
+        text: "" + jmhModes[chart.mode] + " scores (" + chart.unit + ")"
       },
       subtitle: {
         text: perClass ? any.namespace : null
       },
-      credits: {
-        enabled: false
-      },
       chart: {
-        reflow: false,
+        type: 'column',
         zoomType: 'xy',
         renderTo: "" + chart.id + "_scores",
-        height: height,
-        style: {
-          fontFamily: "Signika, serif"
-        }
+        height: height
       },
       xAxis: {
         labels: {
           enabled: false
         },
-        categories: [modes[chart.mode]]
+        categories: [jmhModes[chart.mode]]
       },
       yAxis: {
         title: {
           text: "" + chart.unit
         },
         min: 0
-      },
-      plotOptions: {
-        series: {
-          groupPadding: 0
-        },
-        bar: {
-          stickyTracking: false,
-          marker: {
-            enabled: false
-          }
-        }
       },
       legend: {
         layout: 'vertical'
@@ -145,44 +171,83 @@
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           bench = _ref[_i];
           series.push({
-            type: 'column',
-            name: (perClass ? "" : "" + bench.namespace + ".") + bench.name + (isSingleFile ? "" : " (" + bench.filename + ")"),
-            data: [bench.primary.score]
+            name: (perClass ? "" : "" + bench.namespace + ".") + bench.name,
+            data: [
+              {
+                y: bench.primary.score,
+                drilldown: bench.secondaries.length ? "" + bench.namespace + "." + bench.name : null,
+                info: bench.info,
+                unit: bench.unit,
+                filename: bench.filename
+              }
+            ]
           });
           series.push({
             type: 'errorbar',
+            enableMouseTracking: false,
             data: [bench.primary.confidence]
           });
         }
         return series;
-      })()
-    };
+      })(),
+      drilldown: {
+        series: (function() {
+          var _i, _len, _ref, _results;
+          _ref = chart.benchmarks;
+          _results = [];
+          for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+            bench = _ref[_i];
+            if (bench.secondaries.length) {
+              _results.push({
+                id: "" + bench.namespace + "." + bench.name,
+                name: (perClass ? "" : "" + bench.namespace + ".") + bench.name,
+                enableMouseTracking: false,
+                data: (function() {
+                  var _j, _len1, _ref1, _results1;
+                  _ref1 = bench.secondaries;
+                  _results1 = [];
+                  for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+                    secondary = _ref1[_j];
+                    _results1.push({
+                      name: secondary.name,
+                      y: secondary.score,
+                      dataLabels: {
+                        enabled: true,
+                        verticalAlign: 'bottom',
+                        formatter: function() {
+                          return this.point.name;
+                        }
+                      }
+                    });
+                  }
+                  return _results1;
+                })()
+              });
+            }
+          }
+          return _results;
+        })()
+      }
+    });
     return new Highcharts.Chart(options);
   };
 
-  renderPercentiles = function(chart, perClass, isSingleFile, height, width) {
+  renderPercentiles = function(chart, perClass, height, width) {
     var any, bench, options, p, _;
     any = chart.benchmarks[0];
-    options = {
+    options = sharedChartOptions({
       title: {
-        text: "" + modes[chart.mode] + " percentiles (" + chart.unit + ")"
+        text: "" + jmhModes[chart.mode] + " percentiles (" + chart.unit + ")"
       },
       subtitle: {
         text: perClass ? any.namespace : null
       },
-      credits: {
-        enabled: false
-      },
       chart: {
-        reflow: false,
         zoomType: 'xy',
         renderTo: "" + chart.id + "_percentiles",
         type: 'spline',
         height: height,
-        width: width,
-        style: {
-          fontFamily: "Signika, serif"
-        }
+        width: width
       },
       xAxis: {
         categories: (function() {
@@ -203,14 +268,6 @@
       legend: {
         layout: 'vertical'
       },
-      plotOptions: {
-        spline: {
-          stickyTracking: false,
-          marker: {
-            enabled: false
-          }
-        }
-      },
       series: (function() {
         var _i, _len, _ref, _results;
         _ref = chart.benchmarks;
@@ -218,14 +275,19 @@
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           bench = _ref[_i];
           _results.push({
-            name: (perClass ? "" : "" + bench.namespace + ".") + bench.name + (isSingleFile ? "" : " (" + bench.filename + ")"),
+            name: (perClass ? "" : "" + bench.namespace + ".") + bench.name,
             data: (function() {
               var _ref1, _results1;
               _ref1 = bench.primary.percentiles;
               _results1 = [];
               for (_ in _ref1) {
                 p = _ref1[_];
-                _results1.push(p);
+                _results1.push({
+                  y: p,
+                  info: bench.info,
+                  unit: bench.unit,
+                  filename: bench.filename
+                });
               }
               return _results1;
             })()
@@ -233,7 +295,7 @@
         }
         return _results;
       })()
-    };
+    });
     return new Highcharts.Chart(options);
   };
 

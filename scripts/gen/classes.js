@@ -1,5 +1,5 @@
 (function() {
-  var Chart, Metric, safe,
+  var Chart, Metric, jmhInfoText, safe,
     __slice = [].slice;
 
   if (self.jmhc == null) {
@@ -65,11 +65,20 @@
 
   })();
 
+  jmhInfoText = {
+    threads: "Threads",
+    forks: "Forks",
+    warmupIterations: "Warmup iterations",
+    warmupTime: "Warmup time",
+    measurementIterations: "Measurement iterations",
+    measurementTime: "Measurement time"
+  };
+
   jmhc.Benchmark = (function() {
     function Benchmark(jmh, filename, filetime) {
       var cls, name, packages, parms, value, _ref;
+      this.filename = filename;
       this.filetime = filetime;
-      this.filename = filename.substring(0, filename.lastIndexOf('.'));
       _ref = jmh.benchmark.split(".").reverse(), this.name = _ref[0], cls = _ref[1], packages = 3 <= _ref.length ? __slice.call(_ref, 2) : [];
       if (jmh.params != null) {
         parms = (function() {
@@ -87,22 +96,36 @@
       this.namespace = packages.length ? packages.reverse().map(function(p) {
         return p.substring(0, 1);
       }).join(".") + ("." + cls) : cls;
+      this.info = (function() {
+        var info, key, text;
+        info = {};
+        for (key in jmhInfoText) {
+          text = jmhInfoText[key];
+          info[key] = {
+            text: text,
+            value: jmh[key]
+          };
+        }
+        return info;
+      })();
       this.mode = jmh.mode;
       this.unit = jmh.primaryMetric.scoreUnit;
       this.primary = new Metric(this.name, this.namespace, jmh.primaryMetric);
-      this.secondaries = (function() {
-        var jmhMetric, namespace, _ref1, _results;
-        namespace = "" + this.namespace + "." + this.name;
-        _ref1 = jmh.secondaryMetrics;
-        _results = [];
-        for (name in _ref1) {
-          jmhMetric = _ref1[name];
-          if (jmhMetric.scoreUnit === this.unit) {
-            _results.push(new Metric(name, namespace, jmhMetric));
+      this.secondaries = (function(_this) {
+        return function() {
+          var jmhMetric, namespace, _ref1, _results;
+          namespace = "" + _this.namespace + "." + _this.name;
+          _ref1 = jmh.secondaryMetrics;
+          _results = [];
+          for (name in _ref1) {
+            jmhMetric = _ref1[name];
+            if (jmhMetric.scoreUnit === _this.unit) {
+              _results.push(new Metric(name, namespace, jmhMetric));
+            }
           }
-        }
-        return _results;
-      })();
+          return _results;
+        };
+      })(this)();
     }
 
     return Benchmark;

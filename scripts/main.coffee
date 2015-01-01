@@ -16,10 +16,9 @@ angular.module('App', ['ui.jq']).controller 'AppCtrl', ($scope, $timeout) ->
 
 	@render = (chart, $scope) ->
 		$timeout =>
-			isSingleFile = Object.keys(@uploaded).length == 1
 			height = Math.round($(window).height() * .67)
-			sc = renderScore(chart, @perClass, isSingleFile, height)
-			pc = renderPercentiles(chart, @perClass, isSingleFile, sc.chartHeight, sc.chartWidth)
+			sc = renderScore(chart, @perClass, height)
+			pc = renderPercentiles(chart, @perClass, sc.chartHeight, sc.chartWidth)
 			$scope.$on '$destroy', -> sc.destroy(); pc.destroy(); return
 			return
 		, 0, false
@@ -58,76 +57,107 @@ angular.module('App', ['ui.jq']).controller 'AppCtrl', ($scope, $timeout) ->
 
 	return # controller
 
-modes =
+jmhModes =
 	thrpt: "Throughput"
 	avgt: "Average time"
 	sample: "Sampling time"
 	ss: "Single invocation time"
 
-renderScore = (chart, perClass, isSingleFile, height) ->
-	any = chart.benchmarks[0]
-	options =
-		title: text: "#{modes[chart.mode]} scores (#{chart.unit})"
-		subtitle: text: if perClass then any.namespace else null
+sharedChartOptions = (custom = {}) ->
+	opt = $.extend true,
 		credits: enabled: false
+		exporting: enabled: true
 		chart:
-			reflow: false
+			style: fontFamily: "Signika, serif"
+			#borderWidth: 1
+			#borderColor: 'silver'
+		plotOptions:
+			series: 
+				groupPadding: 0
+				stickyTracking: false
+				marker: enabled: false
+		tooltip:
+			formatter: ->
+				tooltip = "<b>#{@series.name}</b>"
+				tooltip += "<br/>Score: #{@point.y} #{@point.unit}"
+				tooltip += "<br/>File: #{@point.filename}"
+				for _, info of @point.info
+					tooltip += "<br/>#{info.text}: #{info.value}"
+				tooltip
+	, custom
+	opt
+
+renderScore = (chart, perClass, height) ->
+	any = chart.benchmarks[0]
+	options = sharedChartOptions
+		title: text: "#{jmhModes[chart.mode]} scores (#{chart.unit})"
+		subtitle: text: if perClass then any.namespace else null
+		chart:
+			type: 'column'
 			zoomType: 'xy'
 			renderTo: "#{chart.id}_scores"
 			height: height
-			style:
-				fontFamily: "Signika, serif"
 		xAxis:
 			labels: enabled: false
-			categories: [modes[chart.mode]]
+			categories: [jmhModes[chart.mode]]
 		yAxis:
 			title: text: "#{chart.unit}"
 			min: 0
-		plotOptions:
-			series: groupPadding: 0
-			bar:
-				stickyTracking: false
-				marker: enabled: false
 		legend: layout: 'vertical'
 		series: do ->
 			series = []
 			for bench in chart.benchmarks
 				series.push
-					type: 'column'
-					name: (if perClass then "" else "#{bench.namespace}.") + bench.name + (if isSingleFile then "" else " (#{bench.filename})")
-					data: [bench.primary.score]
+					name: (if perClass then "" else "#{bench.namespace}.") + bench.name
+					data: [
+						y: bench.primary.score
+						drilldown: if bench.secondaries.length then "#{bench.namespace}.#{bench.name}" else null
+						info: bench.info
+						unit: bench.unit
+						filename: bench.filename
+					]
 				series.push 
 					type: 'errorbar'
+					enableMouseTracking: false
 					data: [bench.primary.confidence]
 			series
+		drilldown:
+			series: for bench in chart.benchmarks when bench.secondaries.length
+				id: "#{bench.namespace}.#{bench.name}"
+				name: (if perClass then "" else "#{bench.namespace}.") + bench.name
+				enableMouseTracking: false
+				data: for secondary in bench.secondaries
+					name: secondary.name
+					y: secondary.score
+					dataLabels:
+						enabled: true
+						verticalAlign: 'bottom'
+						formatter: -> @point.name
 	new Highcharts.Chart options
 
-renderPercentiles = (chart, perClass, isSingleFile, height, width) ->
+renderPercentiles = (chart, perClass, height, width) ->
 	any = chart.benchmarks[0]
-	options =
-		title: text: "#{modes[chart.mode]} percentiles (#{chart.unit})"
+	options = sharedChartOptions
+		title: text: "#{jmhModes[chart.mode]} percentiles (#{chart.unit})"
 		subtitle: text: if perClass then any.namespace else null
-		credits: enabled: false
 		chart:
-			reflow: false
 			zoomType: 'xy'
 			renderTo: "#{chart.id}_percentiles"
 			type: 'spline'
 			height: height
 			width: width
-			style:
-				fontFamily: "Signika, serif"
 		xAxis:
 			categories: (p for p of any.primary.percentiles)
 		yAxis:
 			title: text: "#{chart.unit}"
 			min: 0
 		legend: layout: 'vertical'
-		plotOptions:
-			spline:
-				stickyTracking: false
-				marker: enabled: false
 		series: for bench in chart.benchmarks
-			name: (if perClass then "" else "#{bench.namespace}.") + bench.name + (if isSingleFile then "" else " (#{bench.filename})")
-			data: for _, p of bench.primary.percentiles then p
+			name: (if perClass then "" else "#{bench.namespace}.") + bench.name
+			data: for _, p of bench.primary.percentiles
+				y: p
+				info: bench.info
+				unit: bench.unit
+				filename: bench.filename
+
 	new Highcharts.Chart options

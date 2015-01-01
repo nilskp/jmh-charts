@@ -23,9 +23,16 @@ class Metric
 		@confidence = jmhMetric.scoreConfidence
 		@percentiles = jmhMetric.scorePercentiles
 
+jmhInfoText =
+	threads: "Threads"
+	forks: "Forks"
+	warmupIterations: "Warmup iterations"
+	warmupTime: "Warmup time"
+	measurementIterations: "Measurement iterations"
+	measurementTime: "Measurement time"
+
 class jmhc.Benchmark
-	constructor: (jmh, filename, @filetime) ->
-		@filename = filename.substring 0, filename.lastIndexOf '.'
+	constructor: (jmh, @filename, @filetime) ->
 		[@name, cls, packages...] = jmh.benchmark.split(".").reverse()
 		if jmh.params?
 			parms = ("#{name}=#{value}" for name, value of jmh.params)
@@ -34,10 +41,17 @@ class jmhc.Benchmark
 			if packages.length
 				packages.reverse().map((p) -> p.substring(0, 1)).join(".") + ".#{cls}"
 			else cls
+		@info = do ->
+			info = {}
+			for key, text of jmhInfoText
+				info[key] =
+					text: text
+					value: jmh[key]
+			info
 		@mode = jmh.mode
 		@unit = jmh.primaryMetric.scoreUnit
 		@primary = new Metric(@name, @namespace, jmh.primaryMetric)
-		@secondaries = do ->
+		@secondaries = do =>
 			namespace = "#{@namespace}.#{@name}"
 			# TODO: Perhaps consider unit normalization, in case of differences
 			for name, jmhMetric of jmh.secondaryMetrics when jmhMetric.scoreUnit == @unit
