@@ -1,14 +1,21 @@
 (function() {
   var jmhModes, renderPercentiles, renderScore, sharedChartOptions;
 
-  angular.module('App', ['ui.jq']).controller('AppCtrl', function($scope, $timeout) {
+  angular.module('App', ['ui.jq', 'ngCookies']).controller('AppCtrl', function($scope, $timeout, $cookieStore) {
     var charts;
-    this.perClass = true;
+    this.config = $cookieStore.get('config') || {
+      perClass: true,
+      showConfidence: false
+    };
+    $scope.watchedConfig = this.config;
+    $scope.$watch('watchedConfig', function(newConfig) {
+      return $cookieStore.put('config', newConfig);
+    }, true);
     this.uploaded = {};
-    charts = new jmhc.Charts(this.perClass);
+    charts = new jmhc.Charts(this.config.perClass);
     this.resetCharts = function() {
       var b, file, _, _i, _len, _ref, _ref1;
-      charts = new jmhc.Charts(this.perClass);
+      charts = new jmhc.Charts(this.config.perClass);
       _ref = this.uploaded;
       for (_ in _ref) {
         file = _ref[_];
@@ -22,16 +29,19 @@
     this.charts = function() {
       return charts.toArray();
     };
-    this.flipChart = function(id) {
-      $("#" + id).shape('flip over');
+    this.showChart = function(sideId) {
+      var $side, sideSelector;
+      sideSelector = ".side:not(.active):has(#" + sideId + ")";
+      $side = $(sideSelector);
+      $side.closest('.shape').shape('set next side', sideSelector).shape('flip over');
     };
     this.render = function(chart, $scope) {
       $timeout((function(_this) {
         return function() {
           var height, pc, sc;
           height = Math.round($(window).height() * .67);
-          sc = renderScore(chart, _this.perClass, height);
-          pc = renderPercentiles(chart, _this.perClass, sc.chartHeight, sc.chartWidth);
+          sc = renderScore(chart, _this.config, height);
+          pc = renderPercentiles(chart, _this.config, sc.chartHeight, sc.chartWidth);
           $scope.$on('$destroy', function() {
             sc.destroy();
             pc.destroy();
@@ -90,10 +100,22 @@
   };
 
   sharedChartOptions = function(custom) {
-    var opt;
+    var formatNum, opt;
     if (custom == null) {
       custom = {};
     }
+    formatNum = function(n) {
+      switch (false) {
+        case !(n > 1):
+          return n.abbr(1);
+        case !(n < 0.000000001):
+          return n.abbr(12);
+        case !(n < 0.000001):
+          return n.abbr(9);
+        default:
+          return n.abbr(6);
+      }
+    };
     opt = $.extend(true, {
       credits: {
         enabled: false
@@ -101,6 +123,7 @@
       exporting: {
         enabled: true
       },
+      colors: ['#4572A7', '#AA4643', '#89A54E', '#80699B', '#3D96AE', '#DB843D', '#92A8CD', '#A47D7C', '#B5CA92', '#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#8085e8', '#8d4653', '#91e8e1', '#2f7ed8', '#0d233a', '#8bbc21', '#910000', '#1aadce', '#492970', '#f28f43', '#77a1e5', '#c42525', '#a6c96a'],
       chart: {
         style: {
           fontFamily: "Signika, serif"
@@ -118,9 +141,11 @@
       tooltip: {
         formatter: function() {
           var info, tooltip, _, _ref;
-          tooltip = "<b>" + this.series.name + "</b>";
-          tooltip += "<br/>Score: " + this.point.y + " " + this.point.unit;
-          tooltip += "<br/>File: " + this.point.filename;
+          tooltip = "<b>" + (this.point.name || this.series.name) + "</b>";
+          tooltip += "<br/>Score: " + (formatNum(this.point.y)) + " " + this.point.unit;
+          if (this.point.filename != null) {
+            tooltip += "<br/>File: " + this.point.filename;
+          }
           _ref = this.point.info;
           for (_ in _ref) {
             info = _ref[_];
@@ -133,8 +158,9 @@
     return opt;
   };
 
-  renderScore = function(chart, perClass, height) {
-    var any, bench, options, secondary;
+  renderScore = function(chart, config, height) {
+    var any, bench, options, perClass, secondary;
+    perClass = config.perClass;
     any = chart.benchmarks[0];
     options = sharedChartOptions({
       title: {
@@ -152,8 +178,7 @@
       xAxis: {
         labels: {
           enabled: false
-        },
-        categories: [jmhModes[chart.mode]]
+        }
       },
       yAxis: {
         title: {
@@ -174,6 +199,7 @@
             name: (perClass ? "" : "" + bench.namespace + ".") + bench.name,
             data: [
               {
+                name: (perClass ? "" : "" + bench.namespace + ".") + bench.name,
                 y: bench.primary.score,
                 drilldown: bench.secondaries.length ? "" + bench.namespace + "." + bench.name : null,
                 info: bench.info,
@@ -182,11 +208,13 @@
               }
             ]
           });
-          series.push({
-            type: 'errorbar',
-            enableMouseTracking: false,
-            data: [bench.primary.confidence]
-          });
+          if (config.showConfidence) {
+            series.push({
+              type: 'errorbar',
+              enableMouseTracking: false,
+              data: [bench.primary.confidence]
+            });
+          }
         }
         return series;
       })(),
@@ -201,7 +229,6 @@
               _results.push({
                 id: "" + bench.namespace + "." + bench.name,
                 name: (perClass ? "" : "" + bench.namespace + ".") + bench.name,
-                enableMouseTracking: false,
                 data: (function() {
                   var _j, _len1, _ref1, _results1;
                   _ref1 = bench.secondaries;
@@ -211,9 +238,9 @@
                     _results1.push({
                       name: secondary.name,
                       y: secondary.score,
+                      unit: bench.unit,
                       dataLabels: {
                         enabled: true,
-                        verticalAlign: 'bottom',
                         formatter: function() {
                           return this.point.name;
                         }
@@ -232,8 +259,9 @@
     return new Highcharts.Chart(options);
   };
 
-  renderPercentiles = function(chart, perClass, height, width) {
-    var any, bench, options, p, _;
+  renderPercentiles = function(chart, config, height, width) {
+    var any, bench, name, options, p, perClass;
+    perClass = config.perClass;
     any = chart.benchmarks[0];
     options = sharedChartOptions({
       title: {
@@ -253,8 +281,8 @@
         categories: (function() {
           var _results;
           _results = [];
-          for (p in any.primary.percentiles) {
-            _results.push(p);
+          for (name in any.primary.percentiles) {
+            _results.push(name);
           }
           return _results;
         })()
@@ -280,8 +308,8 @@
               var _ref1, _results1;
               _ref1 = bench.primary.percentiles;
               _results1 = [];
-              for (_ in _ref1) {
-                p = _ref1[_];
+              for (name in _ref1) {
+                p = _ref1[name];
                 _results1.push({
                   y: p,
                   info: bench.info,

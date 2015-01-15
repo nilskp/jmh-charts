@@ -16,15 +16,9 @@
 			<div class="centered row">
 				<div class="six wide column">
 					<div class="ui form segment">
-						<div class="inline field">
-							<div class="ui toggle checkbox">
-								<input id="perClass" type="checkbox" ng-model="ctrl.perClass" ng-change="ctrl.resetCharts()"/>
-								<label for="perClass">Separate chart per class</label>
-							</div>
-						</div>
+						<h3 class="ui header">Load JSON file(s)</h3>
 						<div class="inline field">
 							<div class="ui input">
-								<label>Load JSON file(s)</label>
 								<input type="file" multiple accept=".json" onchange="angular.element(this).scope().ctrl.loadFiles(this)"/>
 							</div>
 						</div>
@@ -32,6 +26,23 @@
 							<div class="item" ng-repeat="file in ctrl.uploaded">
 								<i class="ui red remove icon" title="Remove" ng-click="ctrl.removeFile(file)" style="cursor: pointer;"></i>
 								<div class="content" ng-bind="file.name"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="six wide column">
+					<div class="ui form segment">
+						<h3 class="ui header">Options</h3>
+						<div class="inline field">
+							<div class="ui toggle checkbox">
+								<input id="perClass" type="checkbox" ng-model="ctrl.config.perClass" ng-change="ctrl.resetCharts()"/>
+								<label for="perClass">Separate chart per class</label>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui toggle checkbox">
+								<input id="showConfidence" type="checkbox" ng-model="ctrl.config.showConfidence" ng-change="ctrl.resetCharts()"/>
+								<label for="showConfidence">Show confidence intervals</label>
 							</div>
 						</div>
 					</div>
@@ -51,11 +62,18 @@
 								<div class="side">
 									<div id="{{chart.id}}_percentiles"></div>
 								</div>
+								<!--div class="side">
+									<div id="{{chart.id}}_breakdown"></div>
+								</div-->
 							</div>
 						</div>
 					</div>
 					<div class="ui center aligned bottom attached segment">
-						<button class="ui blue button" ng-click="ctrl.flipChart(chart.id)">Flip</button>
+						<div class="ui blue buttons">
+							<div class="ui button" ng-click="ctrl.showChart(chart.id+'_scores')">Scores</div>
+							<div class="ui button" ng-click="ctrl.showChart(chart.id+'_percentiles')">Percentiles</div>
+							<!--div class="ui button" ng-click="ctrl.showChart(chart.id+'_breakdown')">Breakdown</div-->
+						</div>
 					</div>
 				</div>
 			</div>
@@ -68,8 +86,10 @@
 		<script src="//code.highcharts.com/highcharts-more.js"></script>
 		<script src="//code.highcharts.com/modules/exporting.js"></script>
 		<script src="//code.highcharts.com/modules/drilldown.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/sugar/1.4.1/sugar.min.js"></script>
 		<!--script src="//raw.githubusercontent.com/highslide-software/highcharts.com/master/js/themes/sand-signika.js"></script-->
-		<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.7/angular.min.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.min.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular-cookies.min.js"></script>
 		<script src="scripts/ui-utils.min.js"></script>
 
 		<script src="scripts/gen/classes.js"></script>
