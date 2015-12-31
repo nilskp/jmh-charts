@@ -28,7 +28,8 @@ angular.module('App', ['ui.jq', 'ngCookies']).controller 'AppCtrl', ($scope, $ti
 			height = Math.round($(window).height() * .67)
 			sc = renderScore(chart, @config, height)
 			pc = renderPercentiles(chart, @config, sc.chartHeight, sc.chartWidth)
-			$scope.$on '$destroy', -> sc.destroy(); pc.destroy(); return
+			bc = renderBreakdown(chart, @config, sc.chartHeight, sc.chartWidth)
+			$scope.$on '$destroy', -> sc.destroy(); pc.destroy(); bc.destroy(); return
 			return
 		, 0, false
 		return
@@ -65,6 +66,8 @@ angular.module('App', ['ui.jq', 'ngCookies']).controller 'AppCtrl', ($scope, $ti
 		return # loadFile
 
 	return # controller
+
+angular.bootstrap document.querySelector('#App'), ['App']
 
 jmhModes =
 	thrpt: "Throughput"
@@ -155,42 +158,46 @@ renderScore = (chart, config, height) ->
 						formatter: -> @point.name
 	new Highcharts.Chart options
 
-# Abandoned issue #3:
-#renderBreakdown = (chart, perClass, height, width) ->
-#	any = chart.benchmarks[0]
-#	options = sharedChartOptions
-#		title: text: "#{jmhModes[chart.mode]} score breakdown (#{chart.unit})"
-#		subtitle: text: if perClass then any.namespace else null
-#		chart:
-#			type: 'column'
-#			zoomType: 'xy'
-#			renderTo: "#{chart.id}_breakdown"
-#			height: height
-#			width: width
-#		xAxis:
-#			labels: enabled: false
-#			#categories: (bench.name for bench in chart.benchmarks when bench.secondaries.length)
-#		yAxis:
-#			title: text: "#{chart.unit}"
-#			min: 0
-#		legend: layout: 'vertical'
-#		series: do ->
-#			series = []
-#			for bench in chart.benchmarks when bench.secondaries.length
-#				series.push
-#					name: (if perClass then "" else "#{bench.namespace}.") + bench.name
-#					data: for secondary in bench.secondaries
-#						name: secondary.name
-#						y: secondary.score
-#						info: bench.info
-#						unit: bench.unit
-#						filename: bench.filename
-#				series.push 
-#					type: 'errorbar'
-#					enableMouseTracking: false
-#					data: (secondary.confidence for secondary in bench.secondaries)
-#			series
-#	new Highcharts.Chart options
+renderBreakdown = (chart, config, height, width) ->
+	perClass = config.perClass
+	any = chart.benchmarks[0]
+	options = sharedChartOptions
+		title: text: "#{jmhModes[chart.mode]} score breakdown (#{chart.unit})"
+		subtitle: text: if perClass then any.namespace else null
+		chart:
+			type: 'column'
+			zoomType: 'xy'
+			renderTo: "#{chart.id}_breakdown"
+			height: height
+			width: width
+		xAxis:
+			labels: enabled: false
+			#categories: (bench.name for bench in chart.benchmarks when bench.secondaries.length)
+		yAxis:
+			title: text: "#{chart.unit}"
+			min: 0
+		legend: layout: 'vertical'
+		series: do ->
+			series = []
+			for bench in chart.benchmarks when bench.secondaries.length
+				series.push
+					name: (if perClass then "" else "#{bench.namespace}.") + bench.name
+					data: for secondary in bench.secondaries
+						name: secondary.name
+						y: secondary.score
+						info: bench.info
+						unit: bench.unit
+						filename: bench.filename
+						dataLabels:
+							enabled: true
+							formatter: -> @point.name
+				if config.showConfidence
+					series.push 
+						type: 'errorbar'
+						enableMouseTracking: false
+						data: (secondary.confidence for secondary in bench.secondaries)
+			series
+	new Highcharts.Chart options
 
 renderPercentiles = (chart, config, height, width) ->
 	perClass = config.perClass
