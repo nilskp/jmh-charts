@@ -54,7 +54,7 @@
 						.ui.blue.buttons
 							.ui.button(ng-click="ctrl.showChart(chart.id+'_scores')") Scores
 							.ui.button(ng-click="ctrl.showChart(chart.id+'_percentiles')") Percentiles
-							.ui.button(ng-click="ctrl.showChart(chart.id+'_breakdown')") Secondaries
+							.ui.button(ng-click="ctrl.showChart(chart.id+'_breakdown')") Breakdown
 
 </x-jade>
 
@@ -86,14 +86,10 @@
 
 <script src="scripts/ui-utils.min.js"></script>
 
-<!--
-<script src="scripts/classes.js"></script>
-<script src="scripts/main.js"></script>
--->
-<script src="//coffeescript.org/extras/coffee-script.js"></script>
-
 <script src="scripts/classes.coffee" type="text/coffeescript"></script>
 <script src="scripts/main.coffee" type="text/coffeescript"></script>
+
+<script src="//coffeescript.org/extras/coffee-script.js"></script>
 
 </body>
 </html>
